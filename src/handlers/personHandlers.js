@@ -2,6 +2,7 @@ const {
   getPersons,
   getPersonById,
   getPersonByName,
+  createPerson,
 } = require("../controllers/personControllers");
 
 const getPersonsHandler = async (req, res) => {
@@ -39,8 +40,28 @@ const getPersonByNameHandler = async (req, res) => {
   }
 };
 
+const createPersonHandler = async (req, res) => {
+  const { firstname, lastName, birthdate, hasInsurance, favouriteMovies } =
+    req.body;
+
+  const success = await createPerson(
+    firstname,
+    lastName,
+    birthdate,
+    hasInsurance,
+    favouriteMovies
+  );
+  if (success) return res.send("Person correctly created");
+
+  try {
+  } catch (error) {
+    res.status(500).send("Error creating person: " + error.message);
+  }
+};
+
 module.exports = {
   getPersonsHandler,
   getPersonByIdHandler,
   getPersonByNameHandler,
+  createPersonHandler,
 };
