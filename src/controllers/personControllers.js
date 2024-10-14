@@ -72,7 +72,12 @@ const createPerson = async (
   const isDateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
 
   try {
-    if (!(firstName && lastName && birthdate && hasInsurance))
+    if (
+      !firstName ||
+      !lastName ||
+      !birthdate ||
+      typeof hasInsurance !== "boolean"
+    )
       throw new Error("Missing some information");
 
     //validations
@@ -119,7 +124,8 @@ const createPerson = async (
             ),
             defaults: { title: movie.title, genre: movie.genre },
           });
-          await Person.addMovie(newMovie);
+
+          await newMovie.addPerson(newPerson);
         } catch (error) {
           throw new Error(error.message);
         }
@@ -131,4 +137,95 @@ const createPerson = async (
   }
 };
 
-module.exports = { getPersons, getPersonById, getPersonByName, createPerson };
+const editPerson = async ({
+  id,
+  firstName,
+  lastName,
+  birthdate,
+  hasInsurance,
+  favouriteMovies,
+}) => {
+  const isAlphaRegex = /^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+$/;
+  const isDateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
+
+  try {
+    if (!id) throw Error("Person's id is required");
+    const updatedPerson = await Person.findOne({ where: { id } });
+    if (!updatedPerson) throw Error("Person not found");
+
+    let attributes = {};
+
+    if (firstName) {
+      if (!isAlphaRegex.test(firstName))
+        throw new Error("Firstname only can contain alphabetic characters");
+      attributes = { ...attributes, "first-name": firstName };
+    }
+
+    if (lastName) {
+      if (!isAlphaRegex.test(lastName))
+        throw new Error("Lastname only can contain alphabetic characters");
+      attributes = { ...attributes, "last-name": lastName };
+    }
+
+    if (birthdate) {
+      if (!isDateRegex.test(birthdate))
+        throw new Error(
+          "Birthdate must be a valid date with YYYY-mm-dd format"
+        );
+      attributes = { ...attributes, birthdate };
+    }
+
+    if (typeof hasInsurance === "boolean")
+      attributes = { ...attributes, "has-insurance": hasInsurance };
+    await updatedPerson.update(
+      { ...attributes },
+      {
+        where: {
+          id,
+        },
+        fields: Object.keys(attributes),
+      }
+    );
+
+    if (favouriteMovies.length > 0) {
+      favouriteMovies.forEach(async (movie) => {
+        try {
+          if (!movie.title || !movie.genre) return;
+          const [newMovie, created] = await Movie.findOrCreate({
+            where: Sequelize.where(
+              Sequelize.fn("LOWER", Sequelize.col("title")),
+              movie.title.toLowerCase()
+            ),
+            defaults: { title: movie.title, genre: movie.genre },
+          });
+
+          await newMovie.addPerson(updatedPerson);
+        } catch (error) {
+          throw new Error(error.message);
+        }
+      });
+    }
+
+    return true;
+  } catch (error) {
+    throw Error(error.message);
+  }
+};
+
+const deletePerson = async (id) => {
+  try {
+    const deleted = await Person.destroy({ where: { id } });
+    return deleted;
+  } catch (error) {
+    throw Error(error.message);
+  }
+};
+
+module.exports = {
+  getPersons,
+  getPersonById,
+  getPersonByName,
+  createPerson,
+  editPerson,
+  deletePerson,
+};

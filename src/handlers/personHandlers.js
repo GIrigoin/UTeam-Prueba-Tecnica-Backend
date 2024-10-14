@@ -3,6 +3,8 @@ const {
   getPersonById,
   getPersonByName,
   createPerson,
+  editPerson,
+  deletePerson,
 } = require("../controllers/personControllers");
 
 const getPersonsHandler = async (req, res) => {
@@ -41,19 +43,39 @@ const getPersonByNameHandler = async (req, res) => {
 };
 
 const createPersonHandler = async (req, res) => {
-  const { firstname, lastName, birthdate, hasInsurance, favouriteMovies } =
+  const { firstName, lastName, birthdate, hasInsurance, favouriteMovies } =
     req.body;
 
-  const success = await createPerson(
-    firstname,
-    lastName,
-    birthdate,
-    hasInsurance,
-    favouriteMovies
-  );
-  if (success) return res.send("Person correctly created");
-
   try {
+    const success = await createPerson(
+      firstName,
+      lastName,
+      birthdate,
+      hasInsurance,
+      favouriteMovies
+    );
+    if (success) return res.send("Person correctly created");
+  } catch (error) {
+    res.status(500).send("Error creating person: " + error.message);
+  }
+};
+
+const updatePersonHandler = async (req, res) => {
+  const updateData = req.body;
+  try {
+    const success = await editPerson({ ...updateData });
+    if (success) return res.send("Person's info successfully updated");
+  } catch (error) {
+    res.status(500).send("Error creating person: " + error.message);
+  }
+};
+
+const deletePersonHandler = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const deleted = await deletePerson(id);
+    if (deleted === 0) return res.status(404).send("Target id not found");
+    return res.send("Person succesfully deleted");
   } catch (error) {
     res.status(500).send("Error creating person: " + error.message);
   }
@@ -64,4 +86,6 @@ module.exports = {
   getPersonByIdHandler,
   getPersonByNameHandler,
   createPersonHandler,
+  updatePersonHandler,
+  deletePersonHandler,
 };
