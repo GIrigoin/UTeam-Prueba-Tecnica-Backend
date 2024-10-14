@@ -10,6 +10,10 @@ const getPersons = async () => {
         as: "favourite-movies",
         attributes: ["title", "genre"],
       },
+      order: [
+        ["last-name", "ASC"],
+        ["first-name", "ASC"],
+      ],
     });
     return persons;
   } catch (error) {

@@ -1,6 +1,7 @@
 const {
   getMoviesOfPersonById,
   addMovieByPersonId,
+  deleteMovieFromCollection,
 } = require("../controllers/movieControllers");
 
 const getMoviesByPersonIdHandler = async (req, res) => {
@@ -25,4 +26,21 @@ const addMovieHandler = async (req, res) => {
   }
 };
 
-module.exports = { getMoviesByPersonIdHandler, addMovieHandler };
+const deleteMovieHandler = async (req, res) => {
+  const { personId, title } = req.body;
+  try {
+    if (!personId) throw Error("Person's id required");
+    if (!title) throw Error("Movie's name required");
+
+    const success = await deleteMovieFromCollection(personId, title);
+    if (success) return res.send("Movie successfully deleted");
+  } catch (error) {
+    res.status(500).send("Error deleting movie: " + error.message);
+  }
+};
+
+module.exports = {
+  getMoviesByPersonIdHandler,
+  addMovieHandler,
+  deleteMovieHandler,
+};
