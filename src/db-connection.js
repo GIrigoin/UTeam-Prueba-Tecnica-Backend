@@ -16,4 +16,6 @@ Person.belongsToMany(Movie, {
 });
 Movie.belongsToMany(Person, { through: "people_movies" });
 
-module.exports = { conn: sequelize, Person, Movie };
+const MAX_MOVIES_PER_PERSON = 2;
+
+module.exports = { conn: sequelize, Person, Movie, MAX_MOVIES_PER_PERSON };

@@ -1,4 +1,4 @@
-const { Person, Movie } = require("../db-connection");
+const { Person, Movie, MAX_MOVIES_PER_PERSON } = require("../db-connection");
 const { Op, Sequelize } = require("sequelize");
 
 const getPersons = async () => {
@@ -89,6 +89,11 @@ const createPerson = async (
       throw new Error("Birthdate must be a valid date with YYYY-mm-dd format");
     if (typeof hasInsurance !== "boolean")
       throw new Error("hasInsurance must be true or false");
+
+    if (favouriteMovies.length > MAX_MOVIES_PER_PERSON)
+      throw new Error(
+        `The DB only can store ${MAX_MOVIES_PER_PERSON} movies maximum per person`
+      );
     //.....................................
 
     const [newPerson, created] = await Person.findOrCreate({
@@ -114,9 +119,10 @@ const createPerson = async (
     if (!created) throw new Error("Person already in DB");
 
     if (favouriteMovies.length > 0) {
-      favouriteMovies.forEach(async (movie) => {
+      for (const movie of favouriteMovies) {
         try {
-          if (!movie.title || !movie.genre) return;
+          if (!movie.title || !movie.genre) continue;
+
           const [newMovie, created] = await Movie.findOrCreate({
             where: Sequelize.where(
               Sequelize.fn("LOWER", Sequelize.col("title")),
@@ -127,10 +133,13 @@ const createPerson = async (
 
           await newMovie.addPerson(newPerson);
         } catch (error) {
-          throw new Error(error.message);
+          console.error(
+            `Error processing movie ${movie.title}: ${error.message}`
+          );
         }
-      });
+      }
     }
+
     return true;
   } catch (error) {
     throw Error(error.message);
@@ -177,6 +186,12 @@ const editPerson = async ({
 
     if (typeof hasInsurance === "boolean")
       attributes = { ...attributes, "has-insurance": hasInsurance };
+
+    if (favouriteMovies.length > MAX_MOVIES_PER_PERSON)
+      throw new Error(
+        `The DB only can store ${MAX_MOVIES_PER_PERSON} movies maximum per person`
+      );
+
     await updatedPerson.update(
       { ...attributes },
       {
@@ -187,10 +202,19 @@ const editPerson = async ({
       }
     );
 
+    if (
+      favouriteMovies.length + updatedPerson["favourite-movies"].length >
+      MAX_MOVIES_PER_PERSON
+    )
+      throw new Error(
+        `The DB only can store ${MAX_MOVIES_PER_PERSON} movies maximum per person`
+      );
+
     if (favouriteMovies.length > 0) {
-      favouriteMovies.forEach(async (movie) => {
+      for (const movie of favouriteMovies) {
         try {
-          if (!movie.title || !movie.genre) return;
+          if (!movie.title || !movie.genre) continue;
+
           const [newMovie, created] = await Movie.findOrCreate({
             where: Sequelize.where(
               Sequelize.fn("LOWER", Sequelize.col("title")),
@@ -201,9 +225,11 @@ const editPerson = async ({
 
           await newMovie.addPerson(updatedPerson);
         } catch (error) {
-          throw new Error(error.message);
+          console.error(
+            `Error processing movie ${movie.title}: ${error.message}`
+          );
         }
-      });
+      }
     }
 
     return true;
